@@ -1,0 +1,36 @@
+$ docker rm -f $(docker ps -a -q); docker-compose up -d
+
+
+select @@gtid_slave_pos;
+set global gtid_slave_pos='0-1-7147';
+
+use my_database; create table if not exists t(id int); set global read_only=0;
+
+-- current_pos
+select @@gtid_slave_pos; stop slave;change master to master_host="mysql-master",  master_user="root", master_password="root", master_use_gtid=slave_pos; start slave; select @@gtid_slave_pos;
+
+-- slave_pos
+stop slave;change master to master_host="mysql-master",  master_user="root", master_password="root", master_use_gtid=current_pos; start slave;
+
+--M-M-S
+stop slave;change master to master_host="mysql-slave-1",  master_user="root", master_password="root", master_use_gtid=slave_pos; start slave;
+
+* crear tabla
+mysql -u root  -proot -h 127.0.0.1 -P6033 -Bse "use my_database; create table if not exists t(id int)"
+
+* cambiar permisos del usuario app_user
+revoke all privileges on my_database.* from 'app_user'@'%';
+flush privileges;
+grant select, insert, delete , update on my_database.* to 'app_user'@'%';
+flush privileges;
+
+* cambiar posiciones en mysql-slave-1
+SET SESSION SQL_LOG_BIN = 0;
+revoke all privileges on my_database.* from 'app_user'@'%';
+flush privileges;
+grant select, insert, delete , update on my_database.* to 'app_user'@'%';
+flush privileges;
+SET SESSION SQL_LOG_BIN = 1;
+
+* cambiar slave-2 para que sea slave de slave-1
+stop slave;change master to master_host="mysql-slave-1",  master_user="root", master_password="root", master_use_gtid=slave_pos; start slave;

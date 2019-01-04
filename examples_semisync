@@ -1,0 +1,111 @@
+log-bin                                 = mysql-bin
+XX gtid_strict_mode                        = ON
+plugin_load                             = "semisync_master.so;semisync_slave.so"
+rpl_semi_sync_master                    = ON  
+rpl_semi_sync_slave                     = ON 
+loose_rpl_semi_sync_master_enabled      = ON 
+loose_rpl_semi_sync_slave_enabled       = ON
+rpl_semi_sync_master_timeout            = 10
+log_slave_updates                       = 1 
+
+INSTALL PLUGIN rpl_semi_sync_master SONAME 'semisync_master.so';
+INSTALL PLUGIN rpl_semi_sync_slave SONAME 'semisync_slave.so';
+
+Enable semi-synchronous replication 
+On Master :
+	SET GLOBAL rpl_semi_sync_master_enabled = 1;
+	SET GLOBAL rpl_semi_sync_master_timeout = 5000;
+	set global sync_binlog=1;
+By Default, It's 10 secs. On Slave :
+	SET GLOBAL rpl_semi_sync_slave_enabled = 1;
+	set global sync_binlog=1;
+	stop slave io_thread;
+	start slave io_thread;
+
+update mysql.user set host='%' where user='mrmuser';
+flush privileges;
+
+update mysql.user set host='10.10.%' where user='mrmuser';
+flush privileges;
+
+set sql_log_bin =0;
+GRANT REPLICATION SLAVE ON *.* TO 'slaves'@'10.%' IDENTIFIED BY PASSWORD '*FB0CCEC2CD451CE8311CECBB4BC7A6D43A318567';
+flush privileges;
+set sql_log_bin =1;
+
+set sql_log_bin =0;
+update mysql.user set host='10.%.%.%' where user='slaves';
+flush privileges;
+set sql_log_bin =1;
+
+update mysql.user set host='10.%' where user='slaves';
+flush privileges;
+
+-- No se puede setear en chat por que se dispara el lag
+set global sync_binlog=1;
+
+-- sacando 10.10.60.145 :
+UPDATE mysql_servers set status='OFFLINE_SOFT' where hostname='10.10.60.145';
+LOAD MYSQL SERVERS TO RUNTIME; SAVE MYSQL SERVERS TO DISK;
+
+ONLINE
+
+UPDATE mysql_servers set status='ONLINE' where hostname='10.10.60.145';
+LOAD MYSQL SERVERS TO RUNTIME; SAVE MYSQL SERVERS TO DISK;
+
+-- sacando 10.10.64.18
+
+UPDATE mysql_servers set status='OFFLINE_SOFT' where hostname='10.10.64.18';
+LOAD MYSQL SERVERS TO RUNTIME; SAVE MYSQL SERVERS TO DISK;
+
+ONLINE
+
+UPDATE mysql_servers set status='ONLINE' where hostname='10.10.64.18';
+LOAD MYSQL SERVERS TO RUNTIME; SAVE MYSQL SERVERS TO DISK;
+
+-- sacando 10.10.56.188
+
+UPDATE mysql_servers set status='OFFLINE_SOFT' where hostname='10.10.56.188';
+LOAD MYSQL SERVERS TO RUNTIME; SAVE MYSQL SERVERS TO DISK;
+
+ONLINE
+
+UPDATE mysql_servers set status='ONLINE' where hostname='10.10.56.188';
+LOAD MYSQL SERVERS TO RUNTIME; SAVE MYSQL SERVERS TO DISK;
+
+-- sacando 10.10.70.153
+
+UPDATE mysql_servers set status='OFFLINE_SOFT' where hostname='10.10.70.153';
+LOAD MYSQL SERVERS TO RUNTIME; SAVE MYSQL SERVERS TO DISK;
+
+ONLINE
+
+UPDATE mysql_servers set status='ONLINE' where hostname='10.10.70.153';
+LOAD MYSQL SERVERS TO RUNTIME; SAVE MYSQL SERVERS TO DISK;
+
+
+-- sacando 10.10.62.70
+
+UPDATE mysql_servers set status='OFFLINE_SOFT' where hostname='10.10.62.70';
+LOAD MYSQL SERVERS TO RUNTIME; SAVE MYSQL SERVERS TO DISK;
+
+ONLINE
+
+UPDATE mysql_servers set status='ONLINE' where hostname='10.10.62.70';
+LOAD MYSQL SERVERS TO RUNTIME; SAVE MYSQL SERVERS TO DISK;
+
+
+-- sacando 10.10.59.141
+
+UPDATE mysql_servers set status='OFFLINE_SOFT' where hostname='10.10.59.141';
+LOAD MYSQL SERVERS TO RUNTIME; SAVE MYSQL SERVERS TO DISK;
+
+ONLINE
+
+UPDATE mysql_servers set status='ONLINE' where hostname='10.10.59.141';
+LOAD MYSQL SERVERS TO RUNTIME; SAVE MYSQL SERVERS TO DISK;
+
+pt-online-schema-change --execute --alter  "ADD last_connected_country VARCHAR(255), ADD chat_version TINYINT(4) NOT NUll default 1" --user=ghost --password='4$8]RbwF' h=localhost,D=dbchat,t=talkers --recursion-method none --critical-load Threads_running=300 --max-load Threads_running=300 --chunk-size=500 --chunk-time=2 --progress time,30
+
+
+stop slave;set global sql_slave_skip_counter =1;start slave;
