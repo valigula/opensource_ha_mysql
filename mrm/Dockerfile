@@ -1,5 +1,4 @@
 FROM amazonlinux:latest
-MAINTAINER Letgo <sysops@letgo.com>
 
 USER root
 
